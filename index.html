@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spese del mese</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #1c1e21;
+    --muted: #5f6672;
+    --line: #e2e5ea;
+    --accent: #2563eb;
+    --accent-text: #ffffff;
+    --danger: #c62828;
+    --bar-bg: #e8ebf0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121417;
+      --card: #1c1f24;
+      --text: #eceef1;
+      --muted: #9aa3b0;
+      --line: #2e333b;
+      --accent: #5b8def;
+      --accent-text: #0b1220;
+      --danger: #ff6b6b;
+      --bar-bg: #2a2f37;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.4;
+  }
+  main {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 16px;
+    padding-bottom: 40px;
+  }
+  h1 { font-size: 1.3rem; margin: 4px 0 12px; }
+  h2 { font-size: 1rem; margin: 0 0 10px; color: var(--muted); font-weight: 600; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  button, input, select {
+    font: inherit;
+    color: inherit;
+  }
+  input, select {
+    width: 100%;
+    min-height: 46px;
+    font-size: 16px; /* evita lo zoom automatico su iPhone */
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+  .campo { margin-bottom: 12px; }
+  .riga2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .riga2 > .campo { min-width: 0; }
+  .errore { color: var(--danger); font-size: 0.85rem; min-height: 1.2em; margin: -6px 0 8px; }
+  .btn-primario {
+    width: 100%;
+    min-height: 48px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .mese {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .mese button {
+    min-width: 48px;
+    min-height: 48px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+  .mese .nome { font-weight: 600; text-transform: capitalize; text-align: center; flex: 1; }
+  .totale { text-align: center; }
+  .totale .valore { font-size: 2.2rem; font-weight: 700; margin: 2px 0; }
+  .totale .sub { color: var(--muted); font-size: 0.85rem; }
+  .cat { margin-bottom: 10px; }
+  .cat:last-child { margin-bottom: 0; }
+  .cat .testa { display: flex; justify-content: space-between; gap: 8px; font-size: 0.95rem; }
+  .cat .testa .nome { text-transform: capitalize; }
+  .cat .pct { color: var(--muted); font-size: 0.8rem; margin-left: 6px; }
+  .barra { height: 8px; background: var(--bar-bg); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .barra > span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+  .vuoto { color: var(--muted); text-align: center; padding: 8px 0; margin: 0; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li.spesa {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  li.spesa:last-child { border-bottom: 0; }
+  li.spesa .info { flex: 1; min-width: 0; }
+  li.spesa .titolo { font-weight: 600; text-transform: capitalize; }
+  li.spesa .dettaglio {
+    color: var(--muted);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+  }
+  li.spesa .importo { font-weight: 600; white-space: nowrap; }
+  li.spesa .elimina {
+    min-width: 44px;
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--danger);
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Spese del mese</h1>
+
+  <section class="card" aria-label="Mese selezionato">
+    <div class="mese">
+      <button type="button" id="mesePrec" aria-label="Mese precedente">&#8249;</button>
+      <div class="nome" id="meseNome"></div>
+      <button type="button" id="meseSucc" aria-label="Mese successivo">&#8250;</button>
+    </div>
+  </section>
+
+  <section class="card totale" aria-label="Totale del mese">
+    <h2>Totale del mese</h2>
+    <div class="valore" id="totaleMese">0,00 €</div>
+    <div class="sub" id="numSpese"></div>
+  </section>
+
+  <section class="card" aria-label="Totale per categoria">
+    <h2>Per categoria</h2>
+    <div id="categorie"></div>
+  </section>
+
+  <section class="card" aria-label="Nuova spesa">
+    <h2>Nuova spesa</h2>
+    <form id="form" novalidate>
+      <div class="riga2">
+        <div class="campo">
+          <label for="data">Data</label>
+          <input type="date" id="data" required>
+        </div>
+        <div class="campo">
+          <label for="importo">Importo (€)</label>
+          <input type="text" id="importo" inputmode="decimal" autocomplete="off" placeholder="0,00" required>
+        </div>
+      </div>
+      <div class="errore" id="errore" role="alert"></div>
+      <div class="campo">
+        <label for="categoria">Categoria</label>
+        <select id="categoria"></select>
+      </div>
+      <div class="campo">
+        <label for="nota">Nota (facoltativa)</label>
+        <input type="text" id="nota" maxlength="120" autocomplete="off">
+      </div>
+      <button type="submit" class="btn-primario">Aggiungi</button>
+    </form>
+  </section>
+
+  <section class="card" aria-label="Elenco spese">
+    <h2>Elenco spese</h2>
+    <ul id="elenco"></ul>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var CHIAVE = 'spese-mensili-v1';
+  var CATEGORIE = ['affitto', 'cibo', 'trasporti', 'svago', 'studio', 'altro'];
+
+  var euro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+  var nomeMese = new Intl.DateTimeFormat('it-IT', { month: 'long', year: 'numeric' });
+  var dataBreve = new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  var spese = carica();
+  var oggi = new Date();
+  var annoSel = oggi.getFullYear();
+  var meseSel = oggi.getMonth(); // 0-11
+
+  var el = {
+    mesePrec: document.getElementById('mesePrec'),
+    meseSucc: document.getElementById('meseSucc'),
+    meseNome: document.getElementById('meseNome'),
+    totaleMese: document.getElementById('totaleMese'),
+    numSpese: document.getElementById('numSpese'),
+    categorie: document.getElementById('categorie'),
+    elenco: document.getElementById('elenco'),
+    form: document.getElementById('form'),
+    data: document.getElementById('data'),
+    importo: document.getElementById('importo'),
+    categoria: document.getElementById('categoria'),
+    nota: document.getElementById('nota'),
+    errore: document.getElementById('errore')
+  };
+
+  /* ---------- Memoria (localStorage) ---------- */
+
+  function carica() {
+    try {
+      var testo = localStorage.getItem(CHIAVE);
+      if (!testo) return [];
+      var dati = JSON.parse(testo);
+      if (!Array.isArray(dati)) return [];
+      return dati.filter(function (s) {
+        return s && typeof s.id === 'string' &&
+          /^\d{4}-\d{2}-\d{2}$/.test(s.data) &&
+          typeof s.importo === 'number' && isFinite(s.importo) &&
+          CATEGORIE.indexOf(s.categoria) !== -1;
+      }).map(function (s) {
+        return { id: s.id, data: s.data, importo: s.importo, categoria: s.categoria, nota: typeof s.nota === 'string' ? s.nota : '' };
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function salva() {
+    try {
+      localStorage.setItem(CHIAVE, JSON.stringify(spese));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* ---------- Utilità ---------- */
+
+  function dueCifre(n) { return (n < 10 ? '0' : '') + n; }
+
+  function dataOggiISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + dueCifre(d.getMonth() + 1) + '-' + dueCifre(d.getDate());
+  }
+
+  function dataDaISO(iso) {
+    var p = iso.split('-');
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  }
+
+  function chiaveMese(anno, mese) { return anno + '-' + dueCifre(mese + 1); }
+
+  function leggiImporto(testo) {
+    var t = String(testo).trim().replace(/\s/g, '').replace('€', '');
+    if (!/^\d+([.,]\d{1,2})?$/.test(t)) return NaN;
+    return Math.round(parseFloat(t.replace(',', '.')) * 100) / 100;
+  }
+
+  function nuovoId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function crea(tag, classe, testo) {
+    var e = document.createElement(tag);
+    if (classe) e.className = classe;
+    if (testo !== undefined) e.textContent = testo;
+    return e;
+  }
+
+  /* ---------- Disegno della pagina ---------- */
+
+  function disegna() {
+    var prefisso = chiaveMese(annoSel, meseSel);
+    var delMese = spese.filter(function (s) { return s.data.slice(0, 7) === prefisso; });
+
+    el.meseNome.textContent = nomeMese.format(new Date(annoSel, meseSel, 1));
+
+    // Totale (calcolato in centesimi per evitare errori di arrotondamento)
+    var totaleCent = 0;
+    var perCat = {};
+    CATEGORIE.forEach(function (c) { perCat[c] = 0; });
+    delMese.forEach(function (s) {
+      var cent = Math.round(s.importo * 100);
+      totaleCent += cent;
+      perCat[s.categoria] += cent;
+    });
+
+    el.totaleMese.textContent = euro.format(totaleCent / 100);
+    el.numSpese.textContent = delMese.length === 1 ? '1 spesa' : delMese.length + ' spese';
+
+    // Totale per categoria
+    el.categorie.textContent = '';
+    var conSpese = CATEGORIE.filter(function (c) { return perCat[c] > 0; })
+      .sort(function (a, b) { return perCat[b] - perCat[a]; });
+    if (conSpese.length === 0) {
+      el.categorie.appendChild(crea('p', 'vuoto', 'Nessuna spesa in questo mese'));
+    }
+    conSpese.forEach(function (c) {
+      var pct = totaleCent > 0 ? (perCat[c] / totaleCent) * 100 : 0;
+      var riga = crea('div', 'cat');
+      var testa = crea('div', 'testa');
+      var sx = crea('span');
+      sx.appendChild(crea('span', 'nome', c));
+      sx.appendChild(crea('span', 'pct', Math.round(pct) + '%'));
+      testa.appendChild(sx);
+      testa.appendChild(crea('strong', null, euro.format(perCat[c] / 100)));
+      var barra = crea('div', 'barra');
+      var riempi = crea('span');
+      riempi.style.width = pct.toFixed(1) + '%';
+      barra.appendChild(riempi);
+      riga.appendChild(testa);
+      riga.appendChild(barra);
+      el.categorie.appendChild(riga);
+    });
+
+    // Elenco, dalla più recente
+    el.elenco.textContent = '';
+    if (delMese.length === 0) {
+      var vuoto = crea('li', 'vuoto', 'Nessuna spesa in questo mese');
+      el.elenco.appendChild(vuoto);
+    }
+    delMese.slice().sort(function (a, b) {
+      if (a.data !== b.data) return a.data < b.data ? 1 : -1;
+      return a.id < b.id ? 1 : -1;
+    }).forEach(function (s) {
+      var li = crea('li', 'spesa');
+      var info = crea('div', 'info');
+      info.appendChild(crea('div', 'titolo', s.categoria));
+      var dettaglio = dataBreve.format(dataDaISO(s.data)) + (s.nota ? ' · ' + s.nota : '');
+      info.appendChild(crea('div', 'dettaglio', dettaglio));
+      li.appendChild(info);
+      li.appendChild(crea('div', 'importo', euro.format(s.importo)));
+      var btn = crea('button', 'elimina', '✕');
+      btn.type = 'button';
+      btn.setAttribute('aria-label', 'Elimina la spesa di ' + euro.format(s.importo) + ' del ' + dataBreve.format(dataDaISO(s.data)));
+      btn.addEventListener('click', function () { elimina(s.id); });
+      li.appendChild(btn);
+      el.elenco.appendChild(li);
+    });
+  }
+
+  /* ---------- Azioni ---------- */
+
+  function aggiungi(e) {
+    e.preventDefault();
+    var data = el.data.value;
+    var importo = leggiImporto(el.importo.value);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      el.errore.textContent = 'Inserisci una data valida.';
+      el.data.focus();
+      return;
+    }
+    if (!isFinite(importo) || importo <= 0) {
+      el.errore.textContent = 'Inserisci un importo maggiore di zero (es. 12,50).';
+      el.importo.focus();
+      return;
+    }
+    el.errore.textContent = '';
+
+    spese.push({
+      id: nuovoId(),
+      data: data,
+      importo: importo,
+      categoria: el.categoria.value,
+      nota: el.nota.value.trim()
+    });
+    if (!salva()) {
+      el.errore.textContent = 'Attenzione: non riesco a salvare i dati su questo dispositivo.';
+    }
+
+    // Mostra il mese della spesa appena inserita
+    var d = dataDaISO(data);
+    annoSel = d.getFullYear();
+    meseSel = d.getMonth();
+
+    el.importo.value = '';
+    el.nota.value = '';
+    disegna();
+    el.importo.focus();
+  }
+
+  function elimina(id) {
+    if (!window.confirm('Vuoi eliminare questa spesa?')) return;
+    spese = spese.filter(function (s) { return s.id !== id; });
+    salva();
+    disegna();
+  }
+
+  function cambiaMese(delta) {
+    var d = new Date(annoSel, meseSel + delta, 1);
+    annoSel = d.getFullYear();
+    meseSel = d.getMonth();
+    disegna();
+  }
+
+  /* ---------- Avvio ---------- */
+
+  CATEGORIE.forEach(function (c) {
+    var o = document.createElement('option');
+    o.value = c;
+    o.textContent = c.charAt(0).toUpperCase() + c.slice(1);
+    el.categoria.appendChild(o);
+  });
+  el.data.value = dataOggiISO();
+
+  el.form.addEventListener('submit', aggiungi);
+  el.mesePrec.addEventListener('click', function () { cambiaMese(-1); });
+  el.meseSucc.addEventListener('click', function () { cambiaMese(1); });
+
+  disegna();
+})();
+</script>
+</body>
+</html>
